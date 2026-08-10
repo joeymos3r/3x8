@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
-# Railway provides PORT at runtime.
-# Use XUI_PORT when explicitly supplied; otherwise use Railway's PORT.
-XUI_PORT="${XUI_PORT:-${PORT:-3000}}"
-
-export XUI_PORT
-
 echo "Starting 3x-ui..."
+
+# Railway provides PORT at runtime.
+# XUI_PORT can be explicitly set in Railway; otherwise use PORT.
+export XUI_PORT="${XUI_PORT:-${PORT:-3000}}"
+
 echo "Panel port: ${XUI_PORT}"
 
-# Create required directories
+# Required directories
 mkdir -p /etc/x-ui
 mkdir -p /root/cert
 
