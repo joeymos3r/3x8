@@ -1,41 +1,22 @@
 {
   "inbounds": [
     {
-      "remark": "01-VLESS-TLS",
+      "remark": "VLESS-TLS-443",
       "protocol": "vless",
       "port": 443,
-      "host_env": "XUI_HOST_01",
-      "security": "tls"
+      "hostEnv": "XUI_HOST"
     },
     {
-      "remark": "02-VMess-TLS",
+      "remark": "VMess-TLS-8443",
       "protocol": "vmess",
-      "port": 443,
-      "host_env": "XUI_HOST_02",
-      "security": "tls"
+      "port": 8443,
+      "hostEnv": "XUI_HOST"
     },
     {
-      "remark": "03-Trojan-TLS",
+      "remark": "Trojan-TLS-9443",
       "protocol": "trojan",
-      "port": 443,
-      "host_env": "XUI_HOST_03",
-      "security": "tls"
-    },
-    {
-      "remark": "04-VLESS-WS-TLS",
-      "protocol": "vless",
-      "port": 443,
-      "host_env": "XUI_HOST_04",
-      "security": "tls",
-      "transport": "ws"
-    },
-    {
-      "remark": "05-VLESS-gRPC-TLS",
-      "protocol": "vless",
-      "port": 443,
-      "host_env": "XUI_HOST_05",
-      "security": "tls",
-      "transport": "grpc"
+      "port": 9443,
+      "hostEnv": "XUI_HOST"
     }
   ]
 }
