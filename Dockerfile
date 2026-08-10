@@ -5,6 +5,7 @@ ARG XUI_VERSION=v3.6.0
 ENV XUI_PORT=3000
 ENV XUI_WEB_BASE_PATH=/
 ENV XUI_DB_FOLDER=/etc/x-ui
+ENV XUI_DATA_DIR=/etc/x-ui
 
 RUN apk add --no-cache \
     bash \
