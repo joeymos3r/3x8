@@ -1,22 +1,37 @@
 {
   "inbounds": [
     {
-      "remark": "VLESS-TLS-443",
+      "name": "01-VLESS-TLS",
       "protocol": "vless",
-      "port": 443,
-      "hostEnv": "XUI_HOST"
+      "notes": "Create and validate manually in 3x-ui."
     },
     {
-      "remark": "VMess-TLS-8443",
+      "name": "02-VMess-TLS",
       "protocol": "vmess",
-      "port": 8443,
-      "hostEnv": "XUI_HOST"
+      "notes": "Create and validate manually in 3x-ui."
     },
     {
-      "remark": "Trojan-TLS-9443",
+      "name": "03-Trojan-TLS",
       "protocol": "trojan",
-      "port": 9443,
-      "hostEnv": "XUI_HOST"
+      "notes": "Create and validate manually in 3x-ui."
+    },
+    {
+      "name": "04-VLESS-WS-TLS",
+      "protocol": "vless",
+      "transport": "ws",
+      "notes": "Create and validate manually in 3x-ui."
+    },
+    {
+      "name": "05-VLESS-gRPC-TLS",
+      "protocol": "vless",
+      "transport": "grpc",
+      "notes": "Create and validate manually in 3x-ui."
+    },
+    {
+      "name": "06-VLESS-TCP-TLS",
+      "protocol": "vless",
+      "transport": "tcp",
+      "notes": "Create and validate manually in 3x-ui."
     }
   ]
 }
