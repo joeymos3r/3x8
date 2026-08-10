@@ -74,7 +74,7 @@ fi
 
 echo "[2/5] Starting 3x-ui..."
 
- /opt/3x-ui/x-ui &
+/opt/3x-ui/x-ui &
 XUI_PID=$!
 
 echo "3x-ui PID: ${XUI_PID}"
@@ -89,11 +89,11 @@ cleanup() {
 
 trap cleanup INT TERM
 
-echo "[3/5] Waiting for 3x-ui..."
+echo "[3/5] Waiting for 3x-ui HTTP server..."
 
 READY=0
 
-for i in $(seq 1 90); do
+for i in $(seq 1 120); do
 
     if ! kill -0 "${XUI_PID}" 2>/dev/null; then
 
@@ -101,7 +101,7 @@ for i in $(seq 1 90); do
 
         wait "${XUI_PID}" 2>/dev/null || true
 
-        echo "Restarting..."
+        echo "Restarting 3x-ui..."
 
         /opt/3x-ui/x-ui &
         XUI_PID=$!
@@ -120,20 +120,23 @@ for i in $(seq 1 90); do
             --connect-timeout 2 \
             --max-time 3 \
             "http://127.0.0.1:${PANEL_PORT}/" \
-            2>/dev/null || echo "000"
+            2>/dev/null
     )"
 
-    if [[ "${HTTP_CODE}" != "000" ]]; then
+    echo "Panel check ${i}/120 -> HTTP ${HTTP_CODE}"
+
+    if [[ "${HTTP_CODE}" != "000" && -n "${HTTP_CODE}" ]]; then
 
         READY=1
 
-        echo "3x-ui is READY. HTTP ${HTTP_CODE}"
+        echo "=========================================="
+        echo "3x-ui is REALLY READY"
+        echo "HTTP: ${HTTP_CODE}"
+        echo "=========================================="
 
         break
 
     fi
-
-    echo "Waiting for panel... ${i}/90"
 
     sleep 2
 
@@ -143,21 +146,29 @@ if [[ "${READY}" == "1" ]]; then
 
     echo "[4/5] Running inbound provisioning..."
 
+    sleep 3
+
     /opt/3x-ui/provision.sh
 
     PROVISION_EXIT=$?
 
     if [[ "${PROVISION_EXIT}" -eq 0 ]]; then
-        echo "Inbound provisioning finished."
+
+        echo "Inbound provisioning finished successfully."
+
     else
+
         echo "WARNING: provisioning returned ${PROVISION_EXIT}."
         echo "3x-ui will continue running."
+
     fi
 
 else
 
-    echo "WARNING: panel did not become ready."
-    echo "Skipping provisioning."
+    echo "=========================================="
+    echo "ERROR: 3x-ui HTTP server never became ready."
+    echo "Skipping inbound provisioning."
+    echo "=========================================="
 
 fi
 
