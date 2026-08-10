@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
+    jq \
     tzdata \
     wget
 
@@ -27,12 +28,10 @@ RUN set -eux; \
     rm -f /tmp/x-ui.tar.gz
 
 COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
-COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
 COPY scripts/provision.sh /opt/3x-ui/provision.sh
+COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
 
-RUN chmod +x \
-    /opt/3x-ui/entrypoint.sh \
-    /opt/3x-ui/provision.sh
+RUN chmod +x /opt/3x-ui/provision.sh /opt/3x-ui/entrypoint.sh
 
 EXPOSE 3000
 
