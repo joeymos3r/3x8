@@ -1,6 +1,6 @@
 FROM alpine:3.20
 
-ARG XUI_VERSION=v3.5.0
+ARG XUI_VERSION=v3.6.0
 ENV XUI_PORT=3000
 
 RUN apk add --no-cache \
