@@ -27,6 +27,7 @@ RUN set -eux; \
 
 COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
 COPY scripts/provision.sh /opt/3x-ui/provision.sh
+COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
 
 RUN chmod +x /opt/3x-ui/entrypoint.sh /opt/3x-ui/provision.sh
 
