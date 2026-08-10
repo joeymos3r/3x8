@@ -11,8 +11,6 @@ COOKIE_JAR="${DATA_DIR}/.railway-xui-cookie"
 
 PANEL_PORT="${XUI_PORT:-${PORT:-3000}}"
 
-PANEL_BASE="${XUI_WEB_BASE_PATH:-/}"
-
 BASE_URL="http://127.0.0.1:${PANEL_PORT}"
 
 XUI_USER="${XUI_USERNAME:-admin}"
@@ -27,10 +25,6 @@ echo " Panel: ${BASE_URL}"
 echo " User: ${XUI_USER}"
 echo "=========================================="
 
-# --------------------------------------------------
-# Check config
-# --------------------------------------------------
-
 if [[ ! -f "${CONFIG}" ]]; then
     echo "ERROR: Missing ${CONFIG}"
     exit 10
@@ -44,10 +38,6 @@ fi
 INBOUND_COUNT="$(jq '.inbounds | length' "${CONFIG}")"
 
 echo "Configured inbounds: ${INBOUND_COUNT}"
-
-# --------------------------------------------------
-# Generate certificate
-# --------------------------------------------------
 
 if [[ ! -s "${CERT_DIR}/cert.pem" || ! -s "${CERT_DIR}/key.pem" ]]; then
 
@@ -69,10 +59,6 @@ if [[ ! -s "${CERT_DIR}/cert.pem" || ! -s "${CERT_DIR}/key.pem" ]]; then
     chmod 600 "${CERT_DIR}/key.pem"
 
 fi
-
-# --------------------------------------------------
-# Wait for panel
-# --------------------------------------------------
 
 echo "Waiting for panel..."
 
@@ -106,16 +92,9 @@ for i in $(seq 1 60); do
 done
 
 if [[ "${PANEL_READY}" != "1" ]]; then
-
     echo "WARNING: panel is not responding."
-
     exit 20
-
 fi
-
-# --------------------------------------------------
-# Login
-# --------------------------------------------------
 
 echo "Logging in to 3x-ui..."
 
@@ -127,7 +106,10 @@ LOGIN_BODY_FILE="/tmp/xui-login-body.json"
 rm -f "${LOGIN_HEADERS}"
 rm -f "${LOGIN_BODY_FILE}"
 
-# First attempt: JSON
+# ==================================================
+# LOGIN METHOD 1: JSON
+# ==================================================
+
 echo "Login attempt 1: JSON"
 
 LOGIN_HTTP_CODE="$(
@@ -163,9 +145,9 @@ if [[ -n "${LOGIN_RESP}" ]]; then
 
 fi
 
-# --------------------------------------------------
-# Login fallback
-# --------------------------------------------------
+# ==================================================
+# LOGIN METHOD 2: FORM DATA
+# ==================================================
 
 if [[ "${LOGIN_SUCCESS}" != "true" ]]; then
 
@@ -212,9 +194,10 @@ if [[ "${LOGIN_SUCCESS}" != "true" ]]; then
     echo "HTTP: ${LOGIN_HTTP_CODE}"
     echo "Response: ${LOGIN_RESP}"
     echo ""
-    echo "Check XUI_USERNAME and XUI_PASSWORD."
-    echo "If Railway has an old volume, the credentials"
-    echo "inside that volume may be different."
+    echo "XUI_USERNAME=${XUI_USER}"
+    echo "Check XUI_PASSWORD."
+    echo "If Railway has an existing volume,"
+    echo "the database may contain different credentials."
     echo "=========================================="
 
     rm -f "${COOKIE_JAR}"
@@ -225,9 +208,9 @@ fi
 
 echo "Login successful."
 
-# --------------------------------------------------
-# CSRF token
-# --------------------------------------------------
+# ==================================================
+# CSRF
+# ==================================================
 
 echo "Obtaining CSRF token..."
 
@@ -271,9 +254,9 @@ else
 
 fi
 
-# --------------------------------------------------
-# Read existing inbounds
-# --------------------------------------------------
+# ==================================================
+# GET EXISTING INBOUNDS
+# ==================================================
 
 echo "Reading existing inbounds..."
 
@@ -294,10 +277,11 @@ EXISTING="$(cat "${EXISTING_FILE}" 2>/dev/null || true)"
 
 echo "Inbound list HTTP status: ${EXISTING_HTTP_CODE}"
 
+echo "Inbound list response: ${EXISTING}"
+
 if [[ "${EXISTING_HTTP_CODE}" != "200" ]]; then
 
     echo "WARNING: Cannot read inbound list."
-    echo "${EXISTING}"
 
     rm -f "${COOKIE_JAR}"
 
@@ -314,6 +298,7 @@ EXISTING_SUCCESS="$(
 if [[ "${EXISTING_SUCCESS}" != "true" ]]; then
 
     echo "WARNING: 3x-ui rejected inbound list request."
+
     echo "${EXISTING}"
 
     rm -f "${COOKIE_JAR}"
@@ -324,9 +309,9 @@ fi
 
 echo "Existing inbounds loaded."
 
-# --------------------------------------------------
-# Create missing inbounds
-# --------------------------------------------------
+# ==================================================
+# CREATE INBOUNDS
+# ==================================================
 
 CREATED=0
 SKIPPED=0
@@ -344,10 +329,6 @@ while IFS= read -r SPEC; do
     echo "Protocol: ${PROTOCOL}"
     echo "Port: ${PORT}"
     echo "------------------------------------------"
-
-    # FIXED:
-    # jq outputs the matching object.
-    # We explicitly test whether the result is non-empty.
 
     EXISTING_ID="$(
         jq -r \
@@ -438,7 +419,6 @@ while IFS= read -r SPEC; do
 
                 tag:
                     (.tag // .name)
-
             }
 
         ' <<<"${SPEC}"
@@ -490,15 +470,13 @@ while IFS= read -r SPEC; do
 
         echo "WARNING: 3x-ui rejected ${NAME}"
 
+        echo "${RESPONSE}"
+
         FAILED=$((FAILED + 1))
 
     fi
 
 done < <(jq -c '.inbounds[]' "${CONFIG}")
-
-# --------------------------------------------------
-# Summary
-# --------------------------------------------------
 
 echo ""
 echo "=========================================="
@@ -510,5 +488,4 @@ echo "=========================================="
 
 rm -f "${COOKIE_JAR}"
 
-# Provisioning must never kill the panel.
 exit 0
