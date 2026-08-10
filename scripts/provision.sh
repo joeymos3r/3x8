@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-XUI_DATA_DIR="${XUI_DATA_DIR:-/etc/x-ui}"
-MARKER="${XUI_DATA_DIR}/.railway-provisioned"
+DATA_DIR="${XUI_DATA_DIR:-/etc/x-ui}"
+MARKER="${DATA_DIR}/.railway-provisioned"
+CONFIG="/opt/3x-ui/config/inbounds.json"
 
-mkdir -p "${XUI_DATA_DIR}"
-mkdir -p /root/cert
+mkdir -p "${DATA_DIR}" /root/cert
 
 if [[ -f "${MARKER}" ]]; then
-    echo "3x-ui provisioning already completed."
+    echo "Provisioning already completed; leaving existing 3x-ui data unchanged."
     exit 0
 fi
 
-if command -v od >/dev/null 2>&1; then
-    INSTALL_ID="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
-else
-    INSTALL_ID="$(date +%s)-$$"
+if [[ ! -f "${CONFIG}" ]]; then
+    echo "Missing ${CONFIG}" >&2
+    exit 1
 fi
 
+# This configuration file is intentionally descriptive only. It does not
+# inject network listeners or proxy-routing rules into the 3x-ui database.
+# Use the 3x-ui web panel to create and validate any inbounds you need.
+jq -e '.inbounds | type == "array"' "${CONFIG}" >/dev/null
+
+INSTALL_ID="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
 cat > "${MARKER}" <<EOF
 INSTALL_ID=${INSTALL_ID}
 PROVISIONED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
-
 chmod 600 "${MARKER}"
 
-echo "Initial 3x-ui provisioning completed."
-echo "Persistent data directory: ${XUI_DATA_DIR}"
+echo "Initial provisioning completed."
