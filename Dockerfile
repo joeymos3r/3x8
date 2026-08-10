@@ -26,8 +26,9 @@ RUN set -eux; \
     rm -f /tmp/x-ui.tar.gz
 
 COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
+COPY scripts/provision.sh /opt/3x-ui/provision.sh
 
-RUN chmod +x /opt/3x-ui/entrypoint.sh
+RUN chmod +x /opt/3x-ui/entrypoint.sh /opt/3x-ui/provision.sh
 
 EXPOSE 3000
 
