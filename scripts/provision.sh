@@ -14,17 +14,9 @@ PANEL_BASE="${XUI_WEB_BASE_PATH:-/}"
 
 mkdir -p "${DATA_DIR}" "${CERT_DIR}"
 
-# Only initialize credentials on a brand-new database. Existing Railway volumes
-# keep their current 3x-ui account and settings.
-if [[ ! -f "${DATA_DIR}/x-ui.db" && -x /opt/3x-ui/x-ui ]]; then
-    echo "Initializing first-run 3x-ui settings..."
-    /opt/3x-ui/x-ui setting \
-      -username "${XUI_USER}" \
-      -password "${XUI_PASS}" \
-      -port "${PANEL_PORT}" \
-      -webBasePath "${PANEL_BASE}" >/dev/null 2>&1 || true
-fi
-
+# Credentials are initialized by entrypoint.sh before the daemon starts.
+# Keeping this script focused on API provisioning avoids changing credentials
+# while the panel is already running.
 # Generate a self-signed certificate so TLS inbounds are valid Xray configs.
 # For real client use, replace it with a certificate for your public hostname.
 if [[ ! -s "${CERT_DIR}/cert.pem" || ! -s "${CERT_DIR}/key.pem" ]]; then
