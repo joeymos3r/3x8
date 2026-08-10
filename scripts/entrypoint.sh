@@ -8,14 +8,26 @@ mkdir -p /etc/x-ui /root/cert
 
 echo "Starting 3x-ui on port ${PANEL_PORT}..."
 
-# On a fresh volume provision.sh creates the database/account before the
-# daemon starts. On an existing volume it leaves the existing account alone.
-if [[ ! -f /etc/x-ui/x-ui.db ]]; then
+# Railway volumes survive redeploys. If credentials are supplied, make the
+# database credentials match them BEFORE starting the web server. This avoids
+# the common 403 loop where XUI_USERNAME/XUI_PASSWORD belong to a newer deploy
+# but the persisted SQLite database still contains the old account.
+if [[ -n "${XUI_USERNAME:-}" && -n "${XUI_PASSWORD:-}" ]]; then
+    echo "Applying XUI_USERNAME/XUI_PASSWORD to the persisted 3x-ui database..."
     /opt/3x-ui/x-ui setting \
-      -username "${XUI_USERNAME:-admin}" \
-      -password "${XUI_PASSWORD:-admin}" \
+      -username "${XUI_USERNAME}" \
+      -password "${XUI_PASSWORD}" \
       -port "${PANEL_PORT}" \
-      -webBasePath "${XUI_WEB_BASE_PATH:-/}" >/dev/null 2>&1 || true
+      -webBasePath "${XUI_WEB_BASE_PATH:-/}" >/dev/null
+else
+    # On a completely new volume, keep the documented admin/admin fallback.
+    if [[ ! -f /etc/x-ui/x-ui.db ]]; then
+        /opt/3x-ui/x-ui setting \
+          -username "admin" \
+          -password "admin" \
+          -port "${PANEL_PORT}" \
+          -webBasePath "${XUI_WEB_BASE_PATH:-/}" >/dev/null 2>&1
+    fi
 fi
 
 /opt/3x-ui/x-ui &
