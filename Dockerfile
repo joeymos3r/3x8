@@ -2,12 +2,14 @@ FROM alpine:3.20
 
 ARG XUI_VERSION=v3.6.0
 ENV XUI_PORT=3000
+ENV XUI_WEB_BASE_PATH=/
 
 RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
     jq \
+    openssl \
     tzdata \
     wget
 
