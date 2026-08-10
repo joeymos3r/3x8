@@ -13,6 +13,7 @@ RUN apk add --no-cache \
 WORKDIR /opt/3x-ui
 
 RUN set -eux; \
+    mkdir -p /opt/3x-ui/config; \
     arch="$(uname -m)"; \
     case "$arch" in \
       x86_64) asset_arch="amd64" ;; \
@@ -25,11 +26,13 @@ RUN set -eux; \
     tar -xzf /tmp/x-ui.tar.gz -C /opt/3x-ui --strip-components=1; \
     rm -f /tmp/x-ui.tar.gz
 
+COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
 COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
 COPY scripts/provision.sh /opt/3x-ui/provision.sh
-COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
 
-RUN chmod +x /opt/3x-ui/entrypoint.sh /opt/3x-ui/provision.sh
+RUN chmod +x \
+    /opt/3x-ui/entrypoint.sh \
+    /opt/3x-ui/provision.sh
 
 EXPOSE 3000
 
