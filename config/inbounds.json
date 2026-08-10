@@ -4,7 +4,7 @@
       "name": "01-VLESS-TLS",
       "protocol": "vless",
       "port": 10001,
-      "enable": false,
+      "enable": true,
       "tag": "01-vless-tls",
       "settings": {
         "clients": [],
@@ -14,19 +14,26 @@
         "network": "tcp",
         "security": "tls",
         "tlsSettings": {
-          "alpn": ["h2", "http/1.1"]
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ]
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
       }
     },
     {
       "name": "02-VMess-TLS",
       "protocol": "vmess",
       "port": 10002,
-      "enable": false,
+      "enable": true,
       "tag": "02-vmess-tls",
       "settings": {
         "clients": [],
@@ -36,19 +43,26 @@
         "network": "tcp",
         "security": "tls",
         "tlsSettings": {
-          "alpn": ["h2", "http/1.1"]
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ]
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
       }
     },
     {
       "name": "03-Trojan-TLS",
       "protocol": "trojan",
       "port": 10003,
-      "enable": false,
+      "enable": true,
       "tag": "03-trojan-tls",
       "settings": {
         "clients": []
@@ -57,19 +71,26 @@
         "network": "tcp",
         "security": "tls",
         "tlsSettings": {
-          "alpn": ["h2", "http/1.1"]
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ]
         }
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
       }
     },
     {
       "name": "04-VLESS-WS-TLS",
       "protocol": "vless",
       "port": 10004,
-      "enable": false,
+      "enable": true,
       "tag": "04-vless-ws-tls",
       "settings": {
         "clients": [],
@@ -79,7 +100,10 @@
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
-          "alpn": ["h2", "http/1.1"]
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ]
         },
         "wsSettings": {
           "path": "/ws"
@@ -87,14 +111,18 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
       }
     },
     {
       "name": "05-VLESS-gRPC-TLS",
       "protocol": "vless",
       "port": 10005,
-      "enable": false,
+      "enable": true,
       "tag": "05-vless-grpc-tls",
       "settings": {
         "clients": [],
@@ -104,7 +132,9 @@
         "network": "grpc",
         "security": "tls",
         "tlsSettings": {
-          "alpn": ["h2"]
+          "alpn": [
+            "h2"
+          ]
         },
         "grpcSettings": {
           "serviceName": "grpc"
@@ -112,29 +142,11 @@
       },
       "sniffing": {
         "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
-      }
-    },
-    {
-      "name": "06-VLESS-TCP-TLS",
-      "protocol": "vless",
-      "port": 10006,
-      "enable": false,
-      "tag": "06-vless-tcp-tls",
-      "settings": {
-        "clients": [],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "tcp",
-        "security": "tls",
-        "tlsSettings": {
-          "alpn": ["h2", "http/1.1"]
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": ["http", "tls", "quic"]
+        "destOverride": [
+          "http",
+          "tls",
+          "quic"
+        ]
       }
     }
   ]
