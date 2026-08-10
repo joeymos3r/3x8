@@ -20,10 +20,6 @@ echo " Port: ${PANEL_PORT}"
 echo " DB: ${DATA_DIR}"
 echo "=========================================="
 
-# --------------------------------------------------
-# Initialize / update panel settings
-# --------------------------------------------------
-
 if [[ -n "${XUI_USERNAME:-}" && -n "${XUI_PASSWORD:-}" ]]; then
 
     echo "[1/5] Configuring XUI credentials..."
@@ -76,32 +72,22 @@ else
 
 fi
 
-# --------------------------------------------------
-# Start 3x-ui
-# --------------------------------------------------
-
 echo "[2/5] Starting 3x-ui..."
 
-/opt/3x-ui/x-ui &
+ /opt/3x-ui/x-ui &
 XUI_PID=$!
 
 echo "3x-ui PID: ${XUI_PID}"
 
 cleanup() {
-
     echo "Stopping 3x-ui..."
 
     if kill -0 "${XUI_PID}" 2>/dev/null; then
         kill "${XUI_PID}" 2>/dev/null || true
     fi
-
 }
 
 trap cleanup INT TERM
-
-# --------------------------------------------------
-# Wait until panel is really alive
-# --------------------------------------------------
 
 echo "[3/5] Waiting for 3x-ui..."
 
@@ -153,10 +139,6 @@ for i in $(seq 1 90); do
 
 done
 
-# --------------------------------------------------
-# Provision inbounds
-# --------------------------------------------------
-
 if [[ "${READY}" == "1" ]]; then
 
     echo "[4/5] Running inbound provisioning..."
@@ -178,10 +160,6 @@ else
     echo "Skipping provisioning."
 
 fi
-
-# --------------------------------------------------
-# Keep container alive
-# --------------------------------------------------
 
 echo "[5/5] 3x-ui is ONLINE."
 
