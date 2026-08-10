@@ -11,6 +11,8 @@ COOKIE_JAR="${DATA_DIR}/.railway-xui-cookie"
 
 PANEL_PORT="${XUI_PORT:-${PORT:-3000}}"
 
+PANEL_BASE="${XUI_WEB_BASE_PATH:-/}"
+
 BASE_URL="http://127.0.0.1:${PANEL_PORT}"
 
 XUI_USER="${XUI_USERNAME:-admin}"
@@ -26,13 +28,19 @@ echo " User: ${XUI_USER}"
 echo "=========================================="
 
 if [[ ! -f "${CONFIG}" ]]; then
+
     echo "ERROR: Missing ${CONFIG}"
+
     exit 10
+
 fi
 
 if ! jq -e '.inbounds | type == "array"' "${CONFIG}" >/dev/null 2>&1; then
+
     echo "ERROR: Invalid inbounds.json"
+
     exit 11
+
 fi
 
 INBOUND_COUNT="$(jq '.inbounds | length' "${CONFIG}")"
@@ -64,7 +72,7 @@ echo "Waiting for panel..."
 
 PANEL_READY=0
 
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
 
     HTTP_CODE="$(
         curl \
@@ -74,14 +82,16 @@ for i in $(seq 1 60); do
             --connect-timeout 2 \
             --max-time 3 \
             "${BASE_URL}/" \
-            2>/dev/null || echo "000"
+            2>/dev/null
     )"
 
-    if [[ "${HTTP_CODE}" != "000" ]]; then
+    echo "Panel check ${i}/120 -> HTTP ${HTTP_CODE}"
+
+    if [[ "${HTTP_CODE}" != "000" && -n "${HTTP_CODE}" ]]; then
 
         PANEL_READY=1
 
-        echo "Panel responded with HTTP ${HTTP_CODE}"
+        echo "Panel is ready."
 
         break
 
@@ -92,31 +102,40 @@ for i in $(seq 1 60); do
 done
 
 if [[ "${PANEL_READY}" != "1" ]]; then
-    echo "WARNING: panel is not responding."
+
+    echo "ERROR: panel did not become ready."
+
     exit 20
+
 fi
+
+echo "Panel HTTP server is ready."
+echo "Waiting 3 seconds for API initialization..."
+
+sleep 3
 
 echo "Logging in to 3x-ui..."
 
 rm -f "${COOKIE_JAR}"
 
-LOGIN_HEADERS="/tmp/xui-login-headers.txt"
+LOGIN_BODY="$(
+    jq -cn \
+        --arg u "${XUI_USER}" \
+        --arg p "${XUI_PASS}" \
+        '{
+            username: $u,
+            password: $p
+        }'
+)"
+
 LOGIN_BODY_FILE="/tmp/xui-login-body.json"
 
-rm -f "${LOGIN_HEADERS}"
 rm -f "${LOGIN_BODY_FILE}"
-
-# ==================================================
-# LOGIN METHOD 1: JSON
-# ==================================================
-
-echo "Login attempt 1: JSON"
 
 LOGIN_HTTP_CODE="$(
     curl \
         -sS \
         -o "${LOGIN_BODY_FILE}" \
-        -D "${LOGIN_HEADERS}" \
         -w "%{http_code}" \
         --max-time 15 \
         -c "${COOKIE_JAR}" \
@@ -124,8 +143,8 @@ LOGIN_HTTP_CODE="$(
         -H "Accept: application/json" \
         -X POST \
         "${BASE_URL}/login" \
-        -d "{\"username\":\"${XUI_USER}\",\"password\":\"${XUI_PASS}\"}" \
-        2>/dev/null || echo "000"
+        -d "${LOGIN_BODY}" \
+        2>/dev/null
 )"
 
 LOGIN_RESP="$(cat "${LOGIN_BODY_FILE}" 2>/dev/null || true)"
@@ -133,130 +152,46 @@ LOGIN_RESP="$(cat "${LOGIN_BODY_FILE}" 2>/dev/null || true)"
 echo "Login HTTP status: ${LOGIN_HTTP_CODE}"
 echo "Login response: ${LOGIN_RESP}"
 
-LOGIN_SUCCESS="false"
+if [[ "${LOGIN_HTTP_CODE}" == "000" ]]; then
 
-if [[ -n "${LOGIN_RESP}" ]]; then
-
-    LOGIN_SUCCESS="$(
-        jq -r '.success // false' \
-        <<<"${LOGIN_RESP}" \
-        2>/dev/null || echo "false"
-    )"
-
-fi
-
-# ==================================================
-# LOGIN METHOD 2: FORM DATA
-# ==================================================
-
-if [[ "${LOGIN_SUCCESS}" != "true" ]]; then
-
-    echo "Login attempt 2: form data"
-
-    rm -f "${COOKIE_JAR}"
-    rm -f "${LOGIN_BODY_FILE}"
-    rm -f "${LOGIN_HEADERS}"
-
-    LOGIN_HTTP_CODE="$(
-        curl \
-            -sS \
-            -o "${LOGIN_BODY_FILE}" \
-            -D "${LOGIN_HEADERS}" \
-            -w "%{http_code}" \
-            --max-time 15 \
-            -c "${COOKIE_JAR}" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "Accept: application/json" \
-            -X POST \
-            "${BASE_URL}/login" \
-            --data-urlencode "username=${XUI_USER}" \
-            --data-urlencode "password=${XUI_PASS}" \
-            2>/dev/null || echo "000"
-    )"
-
-    LOGIN_RESP="$(cat "${LOGIN_BODY_FILE}" 2>/dev/null || true)"
-
-    echo "Login HTTP status: ${LOGIN_HTTP_CODE}"
-    echo "Login response: ${LOGIN_RESP}"
-
-    LOGIN_SUCCESS="$(
-        jq -r '.success // false' \
-        <<<"${LOGIN_RESP}" \
-        2>/dev/null || echo "false"
-    )"
-
-fi
-
-if [[ "${LOGIN_SUCCESS}" != "true" ]]; then
-
-    echo "=========================================="
-    echo "ERROR: 3x-ui login failed."
-    echo "HTTP: ${LOGIN_HTTP_CODE}"
-    echo "Response: ${LOGIN_RESP}"
-    echo ""
-    echo "XUI_USERNAME=${XUI_USER}"
-    echo "Check XUI_PASSWORD."
-    echo "If Railway has an existing volume,"
-    echo "the database may contain different credentials."
-    echo "=========================================="
-
-    rm -f "${COOKIE_JAR}"
+    echo "ERROR: Cannot connect to 3x-ui."
 
     exit 30
 
 fi
 
-echo "Login successful."
+if [[ "${LOGIN_HTTP_CODE}" == "403" ]]; then
 
-# ==================================================
-# CSRF
-# ==================================================
+    echo "ERROR: 3x-ui returned HTTP 403."
+    echo "Username/password do not match the existing database."
 
-echo "Obtaining CSRF token..."
-
-CSRF_RESP="$(
-    curl \
-        -sS \
-        --max-time 10 \
-        -b "${COOKIE_JAR}" \
-        -c "${COOKIE_JAR}" \
-        -H "Accept: application/json" \
-        "${BASE_URL}/panel/csrf-token" \
-        2>/dev/null || true
-)"
-
-CSRF="$(
-    jq -r '.obj // .token // empty' \
-    <<<"${CSRF_RESP}" \
-    2>/dev/null || true
-)"
-
-if [[ -n "${CSRF}" ]]; then
-
-    echo "CSRF token received."
-
-    AUTH_HEADERS=(
-        -b "${COOKIE_JAR}"
-        -H "X-CSRF-Token: ${CSRF}"
-        -H "Content-Type: application/json"
-        -H "Accept: application/json"
-    )
-
-else
-
-    echo "No explicit CSRF token."
-
-    AUTH_HEADERS=(
-        -b "${COOKIE_JAR}"
-        -H "Content-Type: application/json"
-        -H "Accept: application/json"
-    )
+    exit 31
 
 fi
 
-# ==================================================
-# GET EXISTING INBOUNDS
-# ==================================================
+if [[ "${LOGIN_HTTP_CODE}" != "200" && "${LOGIN_HTTP_CODE}" != "204" ]]; then
+
+    echo "ERROR: login failed."
+
+    exit 32
+
+fi
+
+LOGIN_SUCCESS="$(
+    jq -r '.success // false' <<<"${LOGIN_RESP}" 2>/dev/null || echo "false"
+)"
+
+if [[ "${LOGIN_SUCCESS}" != "true" ]]; then
+
+    echo "ERROR: 3x-ui login response indicates failure."
+
+    echo "${LOGIN_RESP}"
+
+    exit 33
+
+fi
+
+echo "Login successful."
 
 echo "Reading existing inbounds..."
 
@@ -268,50 +203,47 @@ EXISTING_HTTP_CODE="$(
         -o "${EXISTING_FILE}" \
         -w "%{http_code}" \
         --max-time 15 \
-        "${AUTH_HEADERS[@]}" \
+        -b "${COOKIE_JAR}" \
+        -H "Accept: application/json" \
         "${BASE_URL}/panel/api/inbounds/list" \
-        2>/dev/null || echo "000"
+        2>/dev/null
 )"
 
 EXISTING="$(cat "${EXISTING_FILE}" 2>/dev/null || true)"
 
 echo "Inbound list HTTP status: ${EXISTING_HTTP_CODE}"
 
-echo "Inbound list response: ${EXISTING}"
+if [[ "${EXISTING_HTTP_CODE}" == "000" ]]; then
 
-if [[ "${EXISTING_HTTP_CODE}" != "200" ]]; then
-
-    echo "WARNING: Cannot read inbound list."
-
-    rm -f "${COOKIE_JAR}"
+    echo "ERROR: Cannot connect to inbound API."
 
     exit 40
 
 fi
 
-EXISTING_SUCCESS="$(
-    jq -r '.success // false' \
-    <<<"${EXISTING}" \
-    2>/dev/null || echo "false"
-)"
+if [[ "${EXISTING_HTTP_CODE}" != "200" ]]; then
 
-if [[ "${EXISTING_SUCCESS}" != "true" ]]; then
-
-    echo "WARNING: 3x-ui rejected inbound list request."
+    echo "ERROR: Cannot read inbound list."
 
     echo "${EXISTING}"
-
-    rm -f "${COOKIE_JAR}"
 
     exit 41
 
 fi
 
-echo "Existing inbounds loaded."
+EXISTING_SUCCESS="$(
+    jq -r '.success // false' <<<"${EXISTING}" 2>/dev/null || echo "false"
+)"
 
-# ==================================================
-# CREATE INBOUNDS
-# ==================================================
+if [[ "${EXISTING_SUCCESS}" != "true" ]]; then
+
+    echo "ERROR: 3x-ui rejected inbound list request."
+
+    echo "${EXISTING}"
+
+    exit 42
+
+fi
 
 CREATED=0
 SKIPPED=0
@@ -324,32 +256,30 @@ while IFS= read -r SPEC; do
     PROTOCOL="$(jq -r '.protocol' <<<"${SPEC}")"
 
     echo ""
-    echo "------------------------------------------"
+    echo "=========================================="
     echo "Inbound: ${NAME}"
     echo "Protocol: ${PROTOCOL}"
     echo "Port: ${PORT}"
-    echo "------------------------------------------"
+    echo "=========================================="
 
-    EXISTING_ID="$(
-        jq -r \
+    EXISTS="$(
+        jq \
+            -e \
             --arg name "${NAME}" \
-            '.obj[]? | select(.remark == $name) | .id' \
+            '.obj[]? | select(.remark == $name)' \
             <<<"${EXISTING}" \
-            2>/dev/null \
-            | head -n 1
+            >/dev/null 2>&1
     )"
 
-    if [[ -n "${EXISTING_ID}" && "${EXISTING_ID}" != "null" ]]; then
+    if [[ "${EXISTS}" == "0" ]]; then
 
-        echo "Inbound already exists. ID=${EXISTING_ID}"
+        echo "Inbound already exists."
 
         SKIPPED=$((SKIPPED + 1))
 
         continue
 
     fi
-
-    echo "Inbound does not exist. Creating..."
 
     BODY="$(
         jq -c \
@@ -361,9 +291,9 @@ while IFS= read -r SPEC; do
 
                 enable: (.enable // true),
 
-                expiryTime: (.expiryTime // 0),
+                expiryTime: 0,
 
-                total: (.total // 0),
+                total: 0,
 
                 listen: (.listen // ""),
 
@@ -372,42 +302,41 @@ while IFS= read -r SPEC; do
                 protocol: .protocol,
 
                 settings:
-                    (.settings // {}),
+                    (.settings // {})
+                    | tojson,
 
                 streamSettings:
                     (
                         .streamSettings // {}
                     )
-                    |
-                    (
+                    | (
                         if .security == "tls" then
 
                             .tlsSettings =
-                            (
-                                (.tlsSettings // {})
-                                +
-                                {
-                                    certificates: [
-                                        {
-                                            certificateFile: $cert,
-                                            keyFile: $key
-                                        }
-                                    ]
-                                }
-                            )
+                                (
+                                    (.tlsSettings // {})
+                                    + {
+                                        certificates: [
+                                            {
+                                                certificateFile: $cert,
+                                                keyFile: $key
+                                            }
+                                        ]
+                                    }
+                                )
 
                         else
 
                             .
 
                         end
-                    ),
+                    )
+                    | tojson,
 
                 sniffing:
                     (
                         .sniffing
-                        //
-                        {
+                        // {
                             enabled: false,
                             destOverride: [
                                 "http",
@@ -415,10 +344,14 @@ while IFS= read -r SPEC; do
                                 "quic"
                             ]
                         }
-                    ),
+                    )
+                    | tojson,
 
                 tag:
-                    (.tag // .name)
+                    (.tag // .name),
+
+                trafficReset:
+                    "never"
             }
 
         ' <<<"${SPEC}"
@@ -432,21 +365,23 @@ while IFS= read -r SPEC; do
             -o "${RESPONSE_FILE}" \
             -w "%{http_code}" \
             --max-time 20 \
-            "${AUTH_HEADERS[@]}" \
+            -b "${COOKIE_JAR}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
             -X POST \
             "${BASE_URL}/panel/api/inbounds/add" \
             -d "${BODY}" \
-            2>/dev/null || echo "000"
+            2>/dev/null
     )"
 
     RESPONSE="$(cat "${RESPONSE_FILE}" 2>/dev/null || true)"
 
     echo "Add HTTP status: ${ADD_HTTP_CODE}"
-    echo "Add response: ${RESPONSE}"
+    echo "Response: ${RESPONSE}"
 
     if [[ "${ADD_HTTP_CODE}" != "200" ]]; then
 
-        echo "WARNING: failed to create ${NAME}"
+        echo "FAILED: ${NAME}"
 
         FAILED=$((FAILED + 1))
 
@@ -455,9 +390,7 @@ while IFS= read -r SPEC; do
     fi
 
     SUCCESS="$(
-        jq -r '.success // false' \
-        <<<"${RESPONSE}" \
-        2>/dev/null || echo "false"
+        jq -r '.success // false' <<<"${RESPONSE}" 2>/dev/null || echo "false"
     )"
 
     if [[ "${SUCCESS}" == "true" ]]; then
@@ -468,9 +401,7 @@ while IFS= read -r SPEC; do
 
     else
 
-        echo "WARNING: 3x-ui rejected ${NAME}"
-
-        echo "${RESPONSE}"
+        echo "FAILED: 3x-ui rejected ${NAME}"
 
         FAILED=$((FAILED + 1))
 
@@ -480,7 +411,7 @@ done < <(jq -c '.inbounds[]' "${CONFIG}")
 
 echo ""
 echo "=========================================="
-echo " Inbound provisioning finished"
+echo " INBOUND PROVISIONING FINISHED"
 echo " Created : ${CREATED}"
 echo " Existing: ${SKIPPED}"
 echo " Failed  : ${FAILED}"
