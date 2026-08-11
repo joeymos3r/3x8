@@ -12,7 +12,7 @@ RUN apk add --no-cache \
     curl \
     jq \
     openssl \
-    sqlite \          # <---- این رو اضافه کن
+    sqlite \
     tzdata \
     wget
 
