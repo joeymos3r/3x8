@@ -1,47 +1,20 @@
-FROM alpine:3.20
+FROM ghcr.io/mhsanaei/3x-ui:latest
 
-ARG XUI_VERSION=v3.6.0
-
-ENV XUI_PORT=3000
-ENV XUI_WEB_BASE_PATH=/
-ENV XUI_DB_FOLDER=/etc/x-ui
-
-RUN apk add --no-cache \
-    bash \
-    ca-certificates \
+# نصب ابزارهای مورد نیاز
+RUN apt-get update && apt-get install -y \
     curl \
     jq \
-    openssl \
-    sqlite \
-    tzdata \
-    wget
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/3x-ui
-
-RUN set -eux; \
-    mkdir -p /opt/3x-ui/config; \
-    arch="$(uname -m)"; \
-    case "$arch" in \
-      x86_64) asset_arch="amd64" ;; \
-      aarch64) asset_arch="arm64" ;; \
-      armv7) asset_arch="armv7" ;; \
-      armv6) asset_arch="armv6" ;; \
-      *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
-    esac; \
-    url="https://github.com/MHSanaei/3x-ui/releases/download/${XUI_VERSION}/x-ui-linux-${asset_arch}.tar.gz"; \
-    echo "Downloading 3x-ui: ${url}"; \
-    wget -O /tmp/x-ui.tar.gz "$url"; \
-    tar -xzf /tmp/x-ui.tar.gz -C /opt/3x-ui --strip-components=1; \
-    rm -f /tmp/x-ui.tar.gz
-
+# کپی فایل‌ها
 COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
-COPY scripts/provision.sh /opt/3x-ui/provision.sh
-COPY scripts/entrypoint.sh /opt/3x-ui/entrypoint.sh
+COPY provision.sh /opt/3x-ui/provision.sh
+RUN chmod +x /opt/3x-ui/provision.sh
 
-RUN chmod +x \
-    /opt/3x-ui/provision.sh \
-    /opt/3x-ui/entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
 
-ENTRYPOINT ["/opt/3x-ui/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
