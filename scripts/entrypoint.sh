@@ -2,14 +2,28 @@
 
 set -e
 
-# شروع x-ui در پس‌زمینه
-x-ui &
+# مطمئن شو پوشه دیتابیس وجود داره
+mkdir -p /etc/x-ui
 
-# منتظر ماندن تا پنل آماده شود (حداکثر ۳۰ ثانیه)
-sleep 10
+echo "Starting 3x-ui..."
+# اجرای فایل اجرایی با مسیر کامل
+/opt/3x-ui/x-ui &
 
-# اجرای اسکریپت provisioning برای اضافه کردن اینباندها
-/opt/3x-ui/provision.sh
+echo "Waiting for database to be created..."
+# صبر کن تا دیتابیس ساخته بشه (حداکثر ۱۰ ثانیه)
+TIMEOUT=10
+while [ ! -f /etc/x-ui/x-ui.db ] && [ $TIMEOUT -gt 0 ]; do
+  sleep 1
+  TIMEOUT=$((TIMEOUT - 1))
+done
 
-# نگه داشتن کانتینر با wait
+if [ -f /etc/x-ui/x-ui.db ]; then
+  echo "Database found. Running provisioning..."
+  /opt/3x-ui/provision.sh
+else
+  echo "ERROR: Database not created after 10 seconds!"
+  exit 1
+fi
+
+# نگه داشتن کانتینر
 wait
