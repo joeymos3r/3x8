@@ -1,22 +1,14 @@
-FROM ghcr.io/mhsanaei/3x-ui:latest
+FROM ghcr.io/alireza0/x-ui:latest
 
-# Install required packages
-RUN apt-get update && apt-get install -y \
-    curl \
-    jq \
-    sqlite3 \
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
+# نصب وابستگی‌ها (برای Alpine)
+RUN apk add --no-cache sqlite curl jq openssl
 
-# Copy config files
+# کپی فایل‌های پروژه
 COPY config/inbounds.json /opt/3x-ui/config/inbounds.json
-COPY provision.sh /opt/3x-ui/provision.sh
-RUN chmod +x /opt/3x-ui/provision.sh
+COPY scripts/provision.sh /opt/3x-ui/provision.sh
+COPY entrypoint.sh /opt/3x-ui/entrypoint.sh
 
-# Copy entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# اجرایی کردن اسکریپت‌ها
+RUN chmod +x /opt/3x-ui/provision.sh /opt/3x-ui/entrypoint.sh
 
-EXPOSE 3000
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/opt/3x-ui/entrypoint.sh"]
