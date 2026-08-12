@@ -1,7 +1,7 @@
 #!/bin/sh
 
-envsubst '${PORT}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '${PORT}' < /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
 
-/usr/local/bin/x-ui start
+x-ui start
 
 nginx -g 'daemon off;'
