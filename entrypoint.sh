@@ -2,4 +2,4 @@
 
 nginx -g "daemon on;"
 
-exec /usr/local/x-ui/x-ui
+exec x-ui
