@@ -1,11 +1,10 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
 
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx supervisor
 
 COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY supervisord.conf /etc/supervisord.conf
 
 EXPOSE 3000
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
