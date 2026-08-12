@@ -1,14 +1,7 @@
-#!/bin/bash
-set -e
+#!/bin/sh
 
-# جایگذاری PORT واقعی Railway در کانفیگ nginx
-envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+envsubst '${PORT}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
-# اجرای 3x-ui در پس‌زمینه
-x-ui &
+/usr/local/bin/x-ui start
 
-# کمی صبر کن تا 3x-ui بالا بیاید
-sleep 3
-
-# اجرای nginx در foreground
-exec nginx -g 'daemon off;'
+nginx -g 'daemon off;'
