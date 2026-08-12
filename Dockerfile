@@ -4,6 +4,8 @@ RUN apk add --no-cache nginx
 
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
+COPY supervisord.conf /etc/supervisord.conf
+
 EXPOSE 3000
 
 CMD sh -c "x-ui start && nginx -g 'daemon off;'"
