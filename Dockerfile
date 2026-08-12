@@ -15,8 +15,9 @@ RUN curl -L https://github.com/MHSanaei/3x-ui/releases/download/v3.6.0/x-ui-linu
     chmod +x /usr/local/x-ui/x-ui && \
     ln -s /usr/local/x-ui/x-ui /usr/bin/x-ui
 
-# Create symlink for xray binary where 3x-ui expects it
+# Create symlink for xray (force overwrite)
 RUN mkdir -p /usr/local/x-ui/bin && \
+    rm -f /usr/local/x-ui/bin/xray-linux-amd64 && \
     ln -s /usr/local/bin/xray /usr/local/x-ui/bin/xray-linux-amd64
 
 COPY nginx.conf /etc/nginx/http.d/default.conf
