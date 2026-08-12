@@ -1,7 +1,10 @@
 #!/bin/sh
 
+# اجرای x-ui در پس‌زمینه
 x-ui start &
 
-sleep 5
+# صبر برای بالا اومدن پنل
+sleep 3
 
-nginx -g 'daemon off;'
+# اجرای Nginx به‌عنوان فرآیند اصلی (جایگزین)
+exec nginx -g 'daemon off;'
