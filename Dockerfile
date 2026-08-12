@@ -1,8 +1,11 @@
 FROM ghcr.io/mhsanaei/3x-ui:latest
 
-RUN echo "=== BUILD_START ===" 
-RUN echo "=== BUILD_END ==="
+RUN apk add --no-cache nginx
+
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+RUN nginx -t
 
 EXPOSE 3000
 
-CMD ["echo", "=== CONTAINER_STARTED ==="]
+CMD ["/bin/sh", "-c", "x-ui start & sleep 3 && exec nginx -g 'daemon off;'"]
