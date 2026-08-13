@@ -9,5 +9,6 @@ RUN chmod +x /start.sh
 
 EXPOSE 3000
 EXPOSE 8080
+EXPOSE 18080-18094
 
 ENTRYPOINT ["/start.sh"]
