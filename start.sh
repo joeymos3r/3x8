@@ -6,28 +6,21 @@ echo "========================================"
 echo " 3x-ui + Xray + Nginx / Railway"
 echo "========================================"
 
-PORT="${PORT:-3000}"
+HTTP_PORT="${PORT:-3000}"
+TCP_PORT="8080"
 
-echo "Railway HTTP PORT: ${PORT}"
-echo "Xray TCP PORT: 8080"
+echo "HTTP PORT: ${HTTP_PORT}"
+echo "Xray TCP PORT: ${TCP_PORT}"
 
-# ---------------------------------------------------------
-# Nginx must listen on Railway HTTP PORT.
-# Xray is free to use 8080 for TCP Proxy.
-# ---------------------------------------------------------
+sed -i "s/__RAILWAY_PORT__/${HTTP_PORT}/g" \
+    /etc/nginx/http.d/default.conf
 
-sed -i "s/__RAILWAY_PORT__/${PORT}/g" /etc/nginx/http.d/default.conf
+echo "Testing nginx..."
 
-echo "Testing nginx configuration..."
 nginx -t
-
-# ---------------------------------------------------------
-# Start 3x-ui / Xray
-# ---------------------------------------------------------
 
 echo "Starting 3x-ui..."
 
-# Disable the VPS-only fail2ban integration.
 export X_UI_ENABLE_FAIL2BAN=false
 export XUI_ENABLE_FAIL2BAN=false
 
@@ -36,11 +29,7 @@ XUI_PID=$!
 
 echo "3x-ui PID: ${XUI_PID}"
 
-# ---------------------------------------------------------
-# Wait for panel
-# ---------------------------------------------------------
-
-echo "Waiting for 3x-ui on 2053..."
+echo "Waiting for 3x-ui..."
 
 READY=0
 
@@ -70,25 +59,17 @@ if [ "$READY" != "1" ]; then
     exit 1
 fi
 
-# ---------------------------------------------------------
-# Start Nginx
-# ---------------------------------------------------------
-
-echo "Starting nginx..."
+echo "Starting nginx on ${HTTP_PORT}..."
 
 nginx -g "daemon off;" &
 NGINX_PID=$!
 
 echo "nginx PID: ${NGINX_PID}"
 
-# ---------------------------------------------------------
-# Keep both services alive
-# ---------------------------------------------------------
-
 while true; do
 
     if ! kill -0 "$XUI_PID" 2>/dev/null; then
-        echo "ERROR: 3x-ui/Xray stopped."
+        echo "ERROR: 3x-ui stopped."
         kill "$NGINX_PID" 2>/dev/null || true
         exit 1
     fi
@@ -100,4 +81,5 @@ while true; do
     fi
 
     sleep 2
+
 done
